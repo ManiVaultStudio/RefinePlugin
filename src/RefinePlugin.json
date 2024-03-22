@@ -1,0 +1,5 @@
+{
+    "name" : "Refine View",
+    "version" : "1.0",
+    "dependencies" : ["Points"]
+}
