@@ -108,7 +108,7 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
 
                 QString actionPath = "Settings/Datasets/Position";
 
-                WidgetAction* action = scatterplot->findChildBypath(actionPath);
+                WidgetAction* action = scatterplot->findChildByPath(actionPath);
 
                 DatasetPickerAction* datasetPickerAction = dynamic_cast<DatasetPickerAction*>(action);
 
