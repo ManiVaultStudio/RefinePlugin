@@ -9,14 +9,8 @@
 
 #include <QWidget>
 
-/** All plugin related classes are in the ManiVault plugin namespace */
 using namespace mv::plugin;
-
-/** Drop widget used in this plugin is located in the ManiVault gui namespace */
 using namespace mv::gui;
-
-/** Dataset reference used in this plugin is located in the ManiVault util namespace */
-using namespace mv::util;
 
 class QLabel;
 
@@ -55,7 +49,7 @@ protected:
 };
 
 /**
- * Example view plugin factory class
+ * Plugin factory class
  *
  * Note: Factory does not need to be altered (merely responsible for generating new plugins when requested)
  */

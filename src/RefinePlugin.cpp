@@ -247,6 +247,10 @@ void RefinePlugin::onRefine()
     }
 }
 
+/// ////////////// ///
+/// Plugin factory ///
+/// ////////////// ///
+
 ViewPlugin* RefinePluginFactory::produce()
 {
     return new RefinePlugin(this);
@@ -254,12 +258,7 @@ ViewPlugin* RefinePluginFactory::produce()
 
 mv::DataTypes RefinePluginFactory::supportedDataTypes() const
 {
-    DataTypes supportedTypes;
-
-    // This example analysis plugin is compatible with points datasets
-    supportedTypes.append(PointType);
-
-    return supportedTypes;
+    return { PointType };
 }
 
 mv::gui::PluginTriggerActions RefinePluginFactory::getPluginTriggerActions(const mv::Datasets& datasets) const
