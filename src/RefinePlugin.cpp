@@ -72,6 +72,16 @@ void RefinePlugin::init()
     _eventListener.registerDataEventByType(PointType, std::bind(&RefinePlugin::onDataEvent, this, std::placeholders::_1));
 }
 
+void RefinePlugin::loadData(const Datasets& datasets)
+{
+    // Exit if there is nothing to load
+    if (datasets.isEmpty())
+        return;
+
+    // Load the first dataset
+    _points = datasets.first();
+}
+
 void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
 {
     // Get smart pointer to dataset that changed
@@ -267,9 +277,9 @@ mv::gui::PluginTriggerActions RefinePluginFactory::getPluginTriggerActions(const
     const auto numberOfDatasets = datasets.count();
 
     if (numberOfDatasets >= 1 && PluginFactory::areAllDatasetsOfTheSameType(datasets, PointType)) {
-        auto pluginTriggerAction = new PluginTriggerAction(const_cast<RefinePluginFactory*>(this), this, "Example", "View example data", getIcon(), [this, getPluginInstance, datasets](PluginTriggerAction& pluginTriggerAction) -> void {
-            for (auto dataset : datasets)
-                getPluginInstance();
+        auto pluginTriggerAction = new PluginTriggerAction(const_cast<RefinePluginFactory*>(this), this, "Refine", "Refine HSNE data", getIcon(), [this, getPluginInstance, datasets](PluginTriggerAction& pluginTriggerAction) -> void {
+            for (const auto& dataset : datasets)
+                getPluginInstance()->loadData(Datasets({ dataset }));;
         });
 
         pluginTriggerActions << pluginTriggerAction;
