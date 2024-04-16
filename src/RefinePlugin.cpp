@@ -19,9 +19,7 @@ using namespace mv;
 
 RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
-    _dropWidget(nullptr),
-    _points(),
-    _currentDatasetName()
+    _points()
 {
 
 }
@@ -66,9 +64,6 @@ void RefinePlugin::init()
     connect(&_points, &Dataset<Points>::guiNameChanged, this, [this]() {
 
         auto newDatasetName = _points->getGuiName();
-
-        // Only show the drop indicator when nothing is loaded in the dataset reference
-        _dropWidget->setShowDropIndicator(newDatasetName.isEmpty());
     });
 
     // Alternatively, classes which derive from hdsp::EventListener (all plugins do) can also respond to events
