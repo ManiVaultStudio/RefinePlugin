@@ -19,9 +19,19 @@ using namespace mv;
 
 RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
-    _points()
+    _points(),
+    _datasetPickerAction(this, "Dataset", DatasetPickerAction::Mode::Automatic)
 {
 
+    _datasetPickerAction.setDatasetsFilterFunction([](const mv::Datasets& datasets) -> Datasets {
+        Datasets possibleInitDataset;
+
+        for (const auto& dataset : datasets)
+            if (dataset->getDataType() == PointType)
+                possibleInitDataset << dataset;
+
+        return possibleInitDataset;
+        });
 }
 
 void RefinePlugin::init()

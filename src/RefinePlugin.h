@@ -1,8 +1,9 @@
 #pragma once
 
+#include <Dataset.h>
 #include <ViewPlugin.h>
 
-#include <Dataset.h>
+#include <actions/DatasetPickerAction.h>
 #include <widgets/DropWidget.h>
 
 #include <PointData/PointData.h>
@@ -46,6 +47,7 @@ public:
 
 protected:
     mv::Dataset<Points>     _points;                    /** Points smart pointer */
+    DatasetPickerAction     _datasetPickerAction;       /** list all current data sets */
 };
 
 /**
