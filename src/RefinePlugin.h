@@ -4,11 +4,10 @@
 #include <ViewPlugin.h>
 
 #include <actions/DatasetPickerAction.h>
+#include <actions/ToggleAction.h>
 #include <actions/TriggerAction.h>
 
 #include <PointData/PointData.h>
-
-#include <QWidget>
 
 using namespace mv::plugin;
 using namespace mv::gui;
@@ -35,20 +34,17 @@ public:
 
     void loadData(const mv::Datasets& datasets);
 
-    /**
-     * Invoked when a data event occurs
-     * @param dataEvent Data event which occurred
-     */
     void onDataEvent(mv::DatasetEvent* dataEvent);
-
-    ViewPlugin* getRefineScatterplot();
 
     void onRefine();
 
-protected:
+private:
     mv::Dataset<Points>     _points;                    /** Points smart pointer */
+    ViewPlugin*             _scatterplotView;           /** Scatterplot to show refined scale in */
+
     TriggerAction           _refineAction;              /** big refine button */
     DatasetPickerAction     _datasetPickerAction;       /** list all current data sets */
+    ToggleAction            _updateDatasetAction;       /** focus refine button on newly refined embedding */
 };
 
 /**
