@@ -4,7 +4,7 @@
 #include <ViewPlugin.h>
 
 #include <actions/DatasetPickerAction.h>
-#include <widgets/DropWidget.h>
+#include <actions/TriggerAction.h>
 
 #include <PointData/PointData.h>
 
@@ -47,6 +47,7 @@ public:
 
 protected:
     mv::Dataset<Points>     _points;                    /** Points smart pointer */
+    TriggerAction           _refineAction;              /** big refine button */
     DatasetPickerAction     _datasetPickerAction;       /** list all current data sets */
 };
 

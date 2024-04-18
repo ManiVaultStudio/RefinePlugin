@@ -1,17 +1,13 @@
 #include "RefinePlugin.h"
 
 #include <AnalysisPlugin.h>
+#include <DataHierarchyItem.h>
 #include <event/Event.h>
 
-#include <actions/TriggerAction.h>
-#include <actions/DatasetPickerAction.h>
-
-#include <DatasetsMimeData.h>
-
 #include <QDebug>
-#include <QMimeData>
+#include <QGridLayout>
 
-#include <chrono>
+#include <algorithm>
 
 Q_PLUGIN_METADATA(IID "studio.manivault.RefinePlugin")
 
@@ -20,15 +16,37 @@ using namespace mv;
 RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
     _points(),
+    _refineAction(this, "Refine"),
     _datasetPickerAction(this, "Dataset", DatasetPickerAction::Mode::Automatic)
 {
 
     _datasetPickerAction.setDatasetsFilterFunction([](const mv::Datasets& datasets) -> Datasets {
         Datasets possibleInitDataset;
 
+        // Only list HSNE embeddings
         for (const auto& dataset : datasets)
-            if (dataset->getDataType() == PointType)
-                possibleInitDataset << dataset;
+        {
+            if (!dataset->isVisible())
+                continue;
+
+            if (dataset->getDataType() != PointType)
+                continue;
+
+             if (dataset.get<Points>()->getNumDimensions() != 2)
+                continue;
+
+             if (!dataset->isDerivedData())
+                continue;
+
+             DataHierarchyItem* parentData = dataset->getDataHierarchyItem().getParent();
+             if (parentData != nullptr && parentData->getDataset<Points>()->getNumDimensions() <= 2)
+                 continue;
+
+             if (dataset->findChildByPath("HSNE Scale/Refine selection") == nullptr)
+                 continue;
+
+            possibleInitDataset << dataset;
+        }
 
         return possibleInitDataset;
         });
@@ -36,13 +54,13 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
 
 void RefinePlugin::init()
 {
-    // Create layout
-    auto layout = new QVBoxLayout();
+    QWidget* viewWidget = &getWidget();
 
+    // Create layout
+    auto layout = new QGridLayout();
     layout->setContentsMargins(0, 0, 0, 0);
 
-    TriggerAction* refineButton = new TriggerAction(this, "Refine");
-    QWidget* refWidget = refineButton->createWidget(&getWidget());
+    QWidget* refWidget = _refineAction.createWidget(viewWidget);
     for (int i = 0; i < refWidget->layout()->count(); ++i)
     {
         QWidget* widget = refWidget->layout()->itemAt(i)->widget();
@@ -63,22 +81,22 @@ void RefinePlugin::init()
             // See gridLayout->itemAt(i)->layout()
         }
     }
-    layout->addWidget(refWidget);
 
-    connect(refineButton, &TriggerAction::triggered, this, &RefinePlugin::onRefine);
+    layout->addWidget(refWidget, 0, 0, 2, 4);
+    layout->addWidget(_datasetPickerAction.createLabelWidget(viewWidget), 2, 0, 0, 1);
+    layout->addWidget(_datasetPickerAction.createWidget(viewWidget), 2, 0, 1, 1);
 
-    // Apply the layout
-    getWidget().setLayout(layout);
+    viewWidget->setLayout(layout);
 
-    // Respond when the name of the dataset in the dataset reference changes
-    connect(&_points, &Dataset<Points>::guiNameChanged, this, [this]() {
+    connect(&_refineAction, &TriggerAction::triggered, this, &RefinePlugin::onRefine);
+    connect(&_datasetPickerAction, &DatasetPickerAction::datasetPicked, this, [this](mv::Dataset<mv::DatasetImpl> newData){
+        if (newData->getDataType() != PointType)
+            return;
 
-        auto newDatasetName = _points->getGuiName();
+        _points = newData;
     });
 
-    // Alternatively, classes which derive from hdsp::EventListener (all plugins do) can also respond to events
     _eventListener.addSupportedEventType(static_cast<std::uint32_t>(EventType::DatasetAdded));
-
     _eventListener.registerDataEventByType(PointType, std::bind(&RefinePlugin::onDataEvent, this, std::placeholders::_1));
 }
 
@@ -88,8 +106,13 @@ void RefinePlugin::loadData(const Datasets& datasets)
     if (datasets.isEmpty())
         return;
 
-    // Load the first dataset
-    _points = datasets.first();
+    qDebug() << datasets.first()->getGuiName();
+    qDebug() << _datasetPickerAction.getOptions();
+
+    if (!_datasetPickerAction.hasOption(datasets.first()->getGuiName()))
+        return;
+
+    _datasetPickerAction.setCurrentDataset(datasets.first()->getId());
 }
 
 void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
@@ -242,7 +265,6 @@ void RefinePlugin::onRefine()
         mv::Dataset<mv::DatasetImpl> pointData = hsnePlugin->getOutputDataset();
 
         mv::gui::WidgetActions widgetActions = pointData->getActions();
-        qDebug() << "Meow";
         for (mv::gui::WidgetAction* action : widgetActions)
         {
             qDebug() << action->getSerializationName();
