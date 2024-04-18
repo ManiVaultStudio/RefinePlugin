@@ -91,8 +91,8 @@ void RefinePlugin::init()
         _points = newData;
     });
 
-    // Todo: This is never triggered since we are in automatic mode
     connect(&_datasetPickerAction, &DatasetPickerAction::datasetsChanged, this, [this](mv::Datasets newDatasets){
+
         if (!_updateDatasetAction.isChecked())
             return;
 
@@ -133,7 +133,7 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
 
             _scatterplotView->loadData({ changedDataSet });
 
-            if (!_updateDatasetAction.isChecked())
+            if (_updateDatasetAction.isChecked() && !changedDataSet->getGuiName().contains("Hsne scale 0"))
                 _points = changedDataSet;
         }
     }
