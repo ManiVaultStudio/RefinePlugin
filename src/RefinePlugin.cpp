@@ -23,7 +23,7 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     _datasetPickerAction.setDatasetsFilterFunction([](const mv::Datasets& datasets) -> Datasets {
         Datasets possibleInitDataset;
 
-        // Only list HSNE embeddings
+        // Only list HSNE embeddings and refined scales
         for (const auto& dataset : datasets)
         {
             if (!dataset->isVisible())
@@ -32,15 +32,8 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
             if (dataset->getDataType() != PointType)
                 continue;
 
-             if (dataset.get<Points>()->getNumDimensions() != 2)
-                continue;
-
              if (!dataset->isDerivedData())
                 continue;
-
-             DataHierarchyItem* parentData = dataset->getDataHierarchyItem().getParent();
-             if (parentData != nullptr && parentData->getDataset<Points>()->getNumDimensions() <= 2)
-                 continue;
 
              if (dataset->findChildByPath("HSNE Scale/Refine selection") == nullptr)
                  continue;
