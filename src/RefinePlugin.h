@@ -1,22 +1,16 @@
 #pragma once
 
+#include <Dataset.h>
 #include <ViewPlugin.h>
 
-#include <Dataset.h>
-#include <widgets/DropWidget.h>
+#include <actions/DatasetPickerAction.h>
+#include <actions/ToggleAction.h>
+#include <actions/TriggerAction.h>
 
 #include <PointData/PointData.h>
 
-#include <QWidget>
-
-/** All plugin related classes are in the ManiVault plugin namespace */
 using namespace mv::plugin;
-
-/** Drop widget used in this plugin is located in the ManiVault gui namespace */
 using namespace mv::gui;
-
-/** Dataset reference used in this plugin is located in the ManiVault util namespace */
-using namespace mv::util;
 
 class QLabel;
 
@@ -38,24 +32,23 @@ public:
     /** This function is called by the core after the view plugin has been created */
     void init() override;
 
-    /**
-     * Invoked when a data event occurs
-     * @param dataEvent Data event which occurred
-     */
-    void onDataEvent(mv::DatasetEvent* dataEvent);
+    void loadData(const mv::Datasets& datasets);
 
-    ViewPlugin* getRefineScatterplot();
+    void onDataEvent(mv::DatasetEvent* dataEvent);
 
     void onRefine();
 
-protected:
-    DropWidget*             _dropWidget;                /** Widget for drag and drop behavior */
+private:
     mv::Dataset<Points>     _points;                    /** Points smart pointer */
-    QString                 _currentDatasetName;        /** Name of the current dataset */
+    ViewPlugin*             _scatterplotView;           /** Scatterplot to show refined scale in */
+
+    TriggerAction           _refineAction;              /** big refine button */
+    DatasetPickerAction     _datasetPickerAction;       /** list all current data sets */
+    ToggleAction            _updateDatasetAction;       /** focus refine button on newly refined embedding */
 };
 
 /**
- * Example view plugin factory class
+ * Plugin factory class
  *
  * Note: Factory does not need to be altered (merely responsible for generating new plugins when requested)
  */
