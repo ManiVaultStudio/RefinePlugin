@@ -26,6 +26,7 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
         // Only list HSNE embeddings and refined scales
         for (const auto& dataset : datasets)
         {
+
             if (!dataset->isVisible())
                 continue;
 
@@ -36,6 +37,14 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
                 continue;
 
              if (dataset->findChildByPath("HSNE Scale/Refine selection") == nullptr)
+             {
+                 // extra check since for refinements that action is seemingly added after this callback is triggered
+                 if (!dataset->getGuiName().contains("Hsne scale"))
+                     continue;
+             }
+
+             // do not add lowest scale
+             if (dataset->getGuiName().contains("Hsne scale 0"))
                  continue;
 
             possibleInitDataset << dataset;
@@ -74,11 +83,22 @@ void RefinePlugin::init()
     viewWidget->setLayout(layout);
 
     connect(&_refineAction, &TriggerAction::triggered, this, &RefinePlugin::onRefine);
+
     connect(&_datasetPickerAction, &DatasetPickerAction::datasetPicked, this, [this](mv::Dataset<mv::DatasetImpl> newData){
         if (newData->getDataType() != PointType)
             return;
 
         _points = newData;
+    });
+
+    // Todo: This is never triggered since we are in automatic mode
+    connect(&_datasetPickerAction, &DatasetPickerAction::datasetsChanged, this, [this](mv::Datasets newDatasets){
+        if (!_updateDatasetAction.isChecked())
+            return;
+
+        if(_datasetPickerAction.getDatasets().contains(_points))
+            _datasetPickerAction.setCurrentDataset(_points->getId());
+
     });
 
     _eventListener.addSupportedEventType(static_cast<std::uint32_t>(EventType::DatasetAdded));
@@ -109,17 +129,12 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
         if (changedDataSet->getGuiName().contains("Hsne scale") &&
             changedDataSet->getDataHierarchyItem().getParent()->getDataset().get<Points>()->getId() == _points->getId())
         {
-            auto scatterplot = Application::core()->getPluginManager().requestPlugin("Scatterplot View");
-            _scatterplotView = dynamic_cast<ViewPlugin*>(scatterplot);
-            mv::workspaces().addViewPlugin(_scatterplotView);
+            _scatterplotView = mv::plugins().requestViewPlugin("Scatterplot View");
 
             _scatterplotView->loadData({ changedDataSet });
 
-            if (_updateDatasetAction.isChecked() &&
-                changedDataSet->findChildByPath("HSNE Scale/Refine selection") != nullptr)
-            {
-                _datasetPickerAction.setCurrentDataset(changedDataSet->getId());
-            }
+            if (!_updateDatasetAction.isChecked())
+                _points = changedDataSet;
         }
     }
     }
