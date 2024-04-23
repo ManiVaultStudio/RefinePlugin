@@ -17,8 +17,11 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     _scatterplotView(nullptr),
     _refineAction(this, "Refine"),
     _datasetPickerAction(this, "Dataset", DatasetPickerAction::Mode::Automatic),
-    _updateDatasetAction(this, "Focus button on refined dataset")
+    _updateDatasetAction(this, "Focus on refinement"),
+    _scatterplotAction(this, "Attach to")
 {
+    _scatterplotAction.setToolTip("Data opens in a new scatteplot. \nThe new scatterplot can be opened as a tab atatched to an existing one.");
+    _updateDatasetAction.setToolTip("When refining a selection, focus the refine button on the newly created data set");
 
     _datasetPickerAction.setDatasetsFilterFunction([](const mv::Datasets& datasets) -> Datasets {
         Datasets possibleInitDataset;
@@ -53,6 +56,29 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
         });
 
 
+    auto resetScatterplotOptions = [this]() {
+        _scatterplotAction.setOptions(getScatterplotOptions());
+        _scatterplotAction.setCurrentIndex(0);
+        _scatterplotAction.setEnabled(true);
+        };
+
+    auto updateScatterplotOptions = [this, resetScatterplotOptions]() {
+        const auto currentOption = _scatterplotAction.getCurrentText();
+        resetScatterplotOptions();
+
+        if (_scatterplotAction.hasOption(currentOption))
+            _scatterplotAction.setCurrentText(currentOption);
+        };
+
+    connect(&mv::plugins(), &AbstractPluginManager::pluginAdded, this, [this, updateScatterplotOptions](plugin::Plugin* plugin) -> void {
+        updateScatterplotOptions();
+        });
+
+    connect(&mv::plugins(), &AbstractPluginManager::pluginDestroyed, this, [this, updateScatterplotOptions](const QString& id) -> void {
+        updateScatterplotOptions();
+        });
+
+    resetScatterplotOptions();
 }
 
 std::vector<mv::plugin::Plugin*> RefinePlugin::getOpenScatterplots()
@@ -98,10 +124,12 @@ void RefinePlugin::init()
         refineButtonWidget->setStyleSheet("font-size: 48px;");
     }
 
-    layout->addWidget(refineButton,                                         0, 0, 2, 4);
+    layout->addWidget(refineButton,                                         0, 0, 2, 6);
     layout->addWidget(_datasetPickerAction.createLabelWidget(viewWidget),   2, 0, 1, 1);
     layout->addWidget(_datasetPickerAction.createWidget(viewWidget),        2, 1, 1, 1);
-    layout->addWidget(_updateDatasetAction.createWidget(viewWidget),        2, 2, 1, 1);
+    layout->addWidget(_updateDatasetAction.createWidget(viewWidget),        2, 3, 1, 1);
+    layout->addWidget(_scatterplotAction.createLabelWidget(viewWidget),     2, 4, 1, 1);
+    layout->addWidget(_scatterplotAction.createWidget(viewWidget),          2, 5, 1, 1);
 
     viewWidget->setLayout(layout);
 

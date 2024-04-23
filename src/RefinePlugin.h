@@ -4,6 +4,7 @@
 #include <ViewPlugin.h>
 
 #include <actions/DatasetPickerAction.h>
+#include <actions/OptionAction.h>
 #include <actions/ToggleAction.h>
 #include <actions/TriggerAction.h>
 
@@ -49,6 +50,7 @@ private:
     TriggerAction           _refineAction;              /** big refine button */
     DatasetPickerAction     _datasetPickerAction;       /** list all current data sets */
     ToggleAction            _updateDatasetAction;       /** focus refine button on newly refined embedding */
+    OptionAction            _scatterplotAction;         /** add new embedding as a tab in a new scatterplot */
 };
 
 /**
