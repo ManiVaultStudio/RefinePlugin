@@ -170,7 +170,6 @@ void RefinePlugin::loadData(const Datasets& datasets)
 
 void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
 {
-
     switch (dataEvent->getType()) {
     case EventType::DatasetAdded:
     {
@@ -180,8 +179,18 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
         if (changedDataSet->getGuiName().contains("Hsne scale") &&
             changedDataSet->getDataHierarchyItem().getParent()->getDataset().get<Points>()->getId() == _points->getId())
         {
-            _scatterplotView = mv::plugins().requestViewPlugin("Scatterplot View");
+            // get potential parent of new scatterplot
+            mv::plugin::ViewPlugin* parentView = nullptr;
 
+            if (_scatterplotAction.getCurrentText() != "New scatterplot")
+            {
+                for (mv::plugin::Plugin* openScatterplot : getOpenScatterplots())
+                    if (openScatterplot->getGuiName() == _scatterplotAction.getCurrentText())
+                        parentView = dynamic_cast<mv::plugin::ViewPlugin*>(openScatterplot);
+            }
+
+            // open new scatterplot
+            _scatterplotView = mv::plugins().requestViewPlugin("Scatterplot View", parentView, DockAreaFlag::Center);
             _scatterplotView->loadData({ changedDataSet });
 
             if (_updateDatasetAction.isChecked() && !changedDataSet->getGuiName().contains("Hsne scale 0"))
@@ -189,6 +198,7 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
         }
     }
     }
+
 }
 
 void RefinePlugin::onRefine()
