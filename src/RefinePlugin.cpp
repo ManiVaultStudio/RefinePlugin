@@ -181,16 +181,20 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
         {
             // get potential parent of new scatterplot
             mv::plugin::ViewPlugin* parentView = nullptr;
+            mv::gui::DockAreaFlag dockArea = gui::DockAreaFlag::Right;
 
             if (_scatterplotAction.getCurrentText() != "New scatterplot")
             {
                 for (mv::plugin::Plugin* openScatterplot : getOpenScatterplots())
                     if (openScatterplot->getGuiName() == _scatterplotAction.getCurrentText())
                         parentView = dynamic_cast<mv::plugin::ViewPlugin*>(openScatterplot);
+
+                if (parentView != nullptr)
+                    dockArea = mv::gui::DockAreaFlag::Center;
             }
 
             // open new scatterplot
-            _scatterplotView = mv::plugins().requestViewPlugin("Scatterplot View", parentView, DockAreaFlag::Center);
+            _scatterplotView = mv::plugins().requestViewPlugin("Scatterplot View", parentView, dockArea);
             _scatterplotView->loadData({ changedDataSet });
 
             if (_updateDatasetAction.isChecked() && !changedDataSet->getGuiName().contains("Hsne scale 0"))
