@@ -38,6 +38,10 @@ public:
 
     void onRefine();
 
+    std::vector<mv::plugin::Plugin*> getOpenScatterplots();
+
+    QStringList getScatterplotOptions();
+
 private:
     mv::Dataset<Points>     _points;                    /** Points smart pointer */
     ViewPlugin*             _scatterplotView;           /** Scatterplot to show refined scale in */

@@ -52,6 +52,30 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
         return possibleInitDataset;
         });
 
+
+}
+
+std::vector<mv::plugin::Plugin*> RefinePlugin::getOpenScatterplots()
+{
+    std::vector<mv::plugin::Plugin*> openScatterplots;
+
+    for (plugin::Plugin* openPlugin : mv::plugins().getPluginsByType(plugin::Type::VIEW))
+        if (openPlugin->getKind() == "Scatterplot View")
+            openScatterplots.push_back(openPlugin);
+
+    return openScatterplots;
+}
+
+QStringList RefinePlugin::getScatterplotOptions()
+{
+    QStringList scatterplotOptions = { "New scatterplot" };
+
+    for (const mv::plugin::Plugin* scatterplot : getOpenScatterplots())
+        scatterplotOptions << scatterplot->getGuiName();
+
+    assert(scatterplotOptions.size() > 0);
+
+    return scatterplotOptions;
 }
 
 void RefinePlugin::init()
