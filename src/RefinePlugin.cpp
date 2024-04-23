@@ -1,7 +1,7 @@
 #include "RefinePlugin.h"
 
-#include <event/Event.h>
 #include <DataHierarchyItem.h>
+#include <event/Event.h>
 
 #include <QDebug>
 #include <QGridLayout>
@@ -26,7 +26,6 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
         // Only list HSNE embeddings and refined scales
         for (const auto& dataset : datasets)
         {
-
             if (!dataset->isVisible())
                 continue;
 
@@ -39,7 +38,7 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
              if (dataset->findChildByPath("HSNE Scale/Refine selection") == nullptr)
              {
                  // extra check since for refinements that action is seemingly added after this callback is triggered
-                 if (!dataset->getGuiName().contains("Hsne scale"))
+                 if (!dataset->getGuiName().contains("Hsne scale") && !dataset->getGuiName().contains("HSNE Embedding"))
                      continue;
              }
 
@@ -61,7 +60,7 @@ void RefinePlugin::init()
 
     // Create layout
     auto layout = new QGridLayout();
-    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setContentsMargins(5, 0, 5, 0);
 
     QWidget* refineButton = _refineAction.createWidget(viewWidget);
     {
@@ -142,13 +141,30 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
 
 void RefinePlugin::onRefine()
 {
-    auto refineAction = _points->findChildByPath("HSNE Scale/Refine selection");
+    if (!_points.isValid())
+    {
+        qDebug() << "No refining since data set is invalid";
+        return;
+    }
+
+    if (_points->getSelectionIndices().empty())
+    {
+        qDebug() << "No refining since selection is empty in " << _points->getGuiName();
+        return;
+    }
+
+    // top level embedding and scales have different UI layouts
+    auto refineAction = _points->findChildByPath("HSNE Settings/HSNE Scale/Refine selection");
+    if(refineAction == nullptr)
+        refineAction = _points->findChildByPath("HSNE Scale/Refine selection");
 
     if (refineAction != nullptr)
     {
+        qDebug() << "Refine selection in " << _points->getGuiName();
         TriggerAction* refineTriggerAction = dynamic_cast<TriggerAction*>(refineAction);
         refineTriggerAction->trigger();
     }
+
 }
 
 /// ////////////// ///
