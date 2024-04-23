@@ -1,7 +1,7 @@
 #include "RefinePlugin.h"
 
-#include <event/Event.h>
 #include <DataHierarchyItem.h>
+#include <event/Event.h>
 
 #include <QDebug>
 #include <QGridLayout>
@@ -17,8 +17,11 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     _scatterplotView(nullptr),
     _refineAction(this, "Refine"),
     _datasetPickerAction(this, "Dataset", DatasetPickerAction::Mode::Automatic),
-    _updateDatasetAction(this, "Focus button on refined dataset")
+    _updateDatasetAction(this, "Focus on refinement"),
+    _scatterplotAction(this, "Attach to")
 {
+    _scatterplotAction.setToolTip("Data opens in a new scatteplot. \nThe new scatterplot can be opened as a tab atatched to an existing one.");
+    _updateDatasetAction.setToolTip("When refining a selection, focus the refine button on the newly created data set");
 
     _datasetPickerAction.setDatasetsFilterFunction([](const mv::Datasets& datasets) -> Datasets {
         Datasets possibleInitDataset;
@@ -26,7 +29,6 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
         // Only list HSNE embeddings and refined scales
         for (const auto& dataset : datasets)
         {
-
             if (!dataset->isVisible())
                 continue;
 
@@ -39,7 +41,7 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
              if (dataset->findChildByPath("HSNE Scale/Refine selection") == nullptr)
              {
                  // extra check since for refinements that action is seemingly added after this callback is triggered
-                 if (!dataset->getGuiName().contains("Hsne scale"))
+                 if (!dataset->getGuiName().contains("Hsne scale") && !dataset->getGuiName().contains("HSNE Embedding"))
                      continue;
              }
 
@@ -53,6 +55,53 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
         return possibleInitDataset;
         });
 
+
+    auto resetScatterplotOptions = [this]() {
+        _scatterplotAction.setOptions(getScatterplotOptions());
+        _scatterplotAction.setCurrentIndex(0);
+        _scatterplotAction.setEnabled(true);
+        };
+
+    auto updateScatterplotOptions = [this, resetScatterplotOptions]() {
+        const auto currentOption = _scatterplotAction.getCurrentText();
+        resetScatterplotOptions();
+
+        if (_scatterplotAction.hasOption(currentOption))
+            _scatterplotAction.setCurrentText(currentOption);
+        };
+
+    connect(&mv::plugins(), &AbstractPluginManager::pluginAdded, this, [this, updateScatterplotOptions](plugin::Plugin* plugin) -> void {
+        updateScatterplotOptions();
+        });
+
+    connect(&mv::plugins(), &AbstractPluginManager::pluginDestroyed, this, [this, updateScatterplotOptions](const QString& id) -> void {
+        updateScatterplotOptions();
+        });
+
+    resetScatterplotOptions();
+}
+
+std::vector<mv::plugin::Plugin*> RefinePlugin::getOpenScatterplots()
+{
+    std::vector<mv::plugin::Plugin*> openScatterplots;
+
+    for (plugin::Plugin* openPlugin : mv::plugins().getPluginsByType(plugin::Type::VIEW))
+        if (openPlugin->getKind() == "Scatterplot View")
+            openScatterplots.push_back(openPlugin);
+
+    return openScatterplots;
+}
+
+QStringList RefinePlugin::getScatterplotOptions()
+{
+    QStringList scatterplotOptions = { "New scatterplot" };
+
+    for (const mv::plugin::Plugin* scatterplot : getOpenScatterplots())
+        scatterplotOptions << scatterplot->getGuiName();
+
+    assert(scatterplotOptions.size() > 0);
+
+    return scatterplotOptions;
 }
 
 void RefinePlugin::init()
@@ -61,7 +110,7 @@ void RefinePlugin::init()
 
     // Create layout
     auto layout = new QGridLayout();
-    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setContentsMargins(5, 0, 5, 0);
 
     QWidget* refineButton = _refineAction.createWidget(viewWidget);
     {
@@ -75,10 +124,12 @@ void RefinePlugin::init()
         refineButtonWidget->setStyleSheet("font-size: 48px;");
     }
 
-    layout->addWidget(refineButton,                                         0, 0, 2, 4);
+    layout->addWidget(refineButton,                                         0, 0, 2, 6);
     layout->addWidget(_datasetPickerAction.createLabelWidget(viewWidget),   2, 0, 1, 1);
     layout->addWidget(_datasetPickerAction.createWidget(viewWidget),        2, 1, 1, 1);
-    layout->addWidget(_updateDatasetAction.createWidget(viewWidget),        2, 2, 1, 1);
+    layout->addWidget(_updateDatasetAction.createWidget(viewWidget),        2, 3, 1, 1);
+    layout->addWidget(_scatterplotAction.createLabelWidget(viewWidget),     2, 4, 1, 1);
+    layout->addWidget(_scatterplotAction.createWidget(viewWidget),          2, 5, 1, 1);
 
     viewWidget->setLayout(layout);
 
@@ -119,7 +170,6 @@ void RefinePlugin::loadData(const Datasets& datasets)
 
 void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
 {
-
     switch (dataEvent->getType()) {
     case EventType::DatasetAdded:
     {
@@ -129,8 +179,22 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
         if (changedDataSet->getGuiName().contains("Hsne scale") &&
             changedDataSet->getDataHierarchyItem().getParent()->getDataset().get<Points>()->getId() == _points->getId())
         {
-            _scatterplotView = mv::plugins().requestViewPlugin("Scatterplot View");
+            // get potential parent of new scatterplot
+            mv::plugin::ViewPlugin* parentView = nullptr;
+            mv::gui::DockAreaFlag dockArea = gui::DockAreaFlag::Right;
 
+            if (_scatterplotAction.getCurrentText() != "New scatterplot")
+            {
+                for (mv::plugin::Plugin* openScatterplot : getOpenScatterplots())
+                    if (openScatterplot->getGuiName() == _scatterplotAction.getCurrentText())
+                        parentView = dynamic_cast<mv::plugin::ViewPlugin*>(openScatterplot);
+
+                if (parentView != nullptr)
+                    dockArea = mv::gui::DockAreaFlag::Center;
+            }
+
+            // open new scatterplot
+            _scatterplotView = mv::plugins().requestViewPlugin("Scatterplot View", parentView, dockArea);
             _scatterplotView->loadData({ changedDataSet });
 
             if (_updateDatasetAction.isChecked() && !changedDataSet->getGuiName().contains("Hsne scale 0"))
@@ -138,17 +202,35 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
         }
     }
     }
+
 }
 
 void RefinePlugin::onRefine()
 {
-    auto refineAction = _points->findChildByPath("HSNE Scale/Refine selection");
+    if (!_points.isValid())
+    {
+        qDebug() << "No refining since data set is invalid";
+        return;
+    }
+
+    if (_points->getSelectionIndices().empty())
+    {
+        qDebug() << "No refining since selection is empty in " << _points->getGuiName();
+        return;
+    }
+
+    // top level embedding and scales have different UI layouts
+    auto refineAction = _points->findChildByPath("HSNE Settings/HSNE Scale/Refine selection");
+    if(refineAction == nullptr)
+        refineAction = _points->findChildByPath("HSNE Scale/Refine selection");
 
     if (refineAction != nullptr)
     {
+        qDebug() << "Refine selection in " << _points->getGuiName();
         TriggerAction* refineTriggerAction = dynamic_cast<TriggerAction*>(refineAction);
         refineTriggerAction->trigger();
     }
+
 }
 
 /// ////////////// ///
