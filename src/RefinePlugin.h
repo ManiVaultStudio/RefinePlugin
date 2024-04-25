@@ -44,7 +44,8 @@ public:
     QStringList getScatterplotOptions();
 
 private:
-    mv::Dataset<Points>     _points;                    /** Points smart pointer */
+    mv::Dataset<Points>     _hsnePoints;                /** Current hsne points smart pointer */
+    mv::Datasets            _candidateDatasets;         /** Candidate datasets for new hsne Points if _updateDatasetAction is active*/
     ViewPlugin*             _scatterplotView;           /** Scatterplot to show refined scale in */
 
     TriggerAction           _refineAction;              /** big refine button */

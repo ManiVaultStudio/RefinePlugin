@@ -13,7 +13,8 @@ using namespace mv;
 
 RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
-    _points(),
+    _hsnePoints(nullptr),
+    _candidateDatasets(),
     _scatterplotView(nullptr),
     _refineAction(this, "Refine"),
     _datasetPickerAction(this, "Dataset"),
@@ -49,7 +50,6 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
         return true;
     });
 
-
     auto resetScatterplotOptions = [this]() {
         _scatterplotAction.setOptions(getScatterplotOptions());
         _scatterplotAction.setCurrentIndex(0);
@@ -71,6 +71,29 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     connect(&mv::plugins(), &AbstractPluginManager::pluginDestroyed, this, [this, updateScatterplotOptions](const QString& id) -> void {
         updateScatterplotOptions();
         });
+
+    connect(&_refineAction, &TriggerAction::triggered, this, &RefinePlugin::onRefine);
+
+    connect(&_datasetPickerAction, &DatasetPickerAction::datasetPicked, this, [this](mv::Dataset<mv::DatasetImpl> newData) {
+        if (newData->getDataType() != PointType)
+            return;
+
+        _hsnePoints = newData;
+        });
+
+    // This plugin builds on the behaviour that DatasetPickerAction::datasetsChanged is envoked before the _eventListener envokes RefinePlugin::onDataEvent
+    connect(&_datasetPickerAction, &DatasetPickerAction::datasetsChanged, this, [this](mv::Datasets newDatasets) {
+
+        _candidateDatasets = {};
+
+        if (!_updateDatasetAction.isChecked())
+            return;
+
+        _candidateDatasets = newDatasets;
+        });
+
+    _eventListener.addSupportedEventType(static_cast<std::uint32_t>(EventType::DatasetAdded));
+    _eventListener.registerDataEventByType(PointType, std::bind(&RefinePlugin::onDataEvent, this, std::placeholders::_1));
 
     resetScatterplotOptions();
 }
@@ -126,28 +149,6 @@ void RefinePlugin::init()
     layout->addWidget(_scatterplotAction.createWidget(viewWidget),          2, 5, 1, 1);
 
     viewWidget->setLayout(layout);
-
-    connect(&_refineAction, &TriggerAction::triggered, this, &RefinePlugin::onRefine);
-
-    connect(&_datasetPickerAction, &DatasetPickerAction::datasetPicked, this, [this](mv::Dataset<mv::DatasetImpl> newData){
-        if (newData->getDataType() != PointType)
-            return;
-
-        _points = newData;
-    });
-
-    connect(&_datasetPickerAction, &DatasetPickerAction::datasetsChanged, this, [this](mv::Datasets newDatasets){
-
-        if (!_updateDatasetAction.isChecked())
-            return;
-
-        if(_datasetPickerAction.getDatasets().contains(_points))
-            _datasetPickerAction.setCurrentDataset(_points->getId());
-
-    });
-
-    _eventListener.addSupportedEventType(static_cast<std::uint32_t>(EventType::DatasetAdded));
-    _eventListener.registerDataEventByType(PointType, std::bind(&RefinePlugin::onDataEvent, this, std::placeholders::_1));
 }
 
 void RefinePlugin::loadData(const Datasets& datasets)
@@ -171,7 +172,7 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
 
         // add new refined embedding to new scatterplot
         if (changedDataSet->getGuiName().contains("Hsne scale") &&
-            changedDataSet->getDataHierarchyItem().getParent()->getDataset().get<Points>()->getId() == _points->getId())
+            changedDataSet->getDataHierarchyItem().getParent()->getDataset().get<Points>()->getId() == _hsnePoints->getId())
         {
             // get potential parent of new scatterplot
             mv::plugin::ViewPlugin* parentView = nullptr;
@@ -192,7 +193,10 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
             _scatterplotView->loadData({ changedDataSet });
 
             if (_updateDatasetAction.isChecked() && !changedDataSet->getGuiName().contains("Hsne scale 0"))
-                _points = changedDataSet;
+            {
+                if (_datasetPickerAction.getDatasets().contains(changedDataSet))
+                    _datasetPickerAction.setCurrentDataset(changedDataSet->getId());
+            }
         }
     }
     }
@@ -201,26 +205,26 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
 
 void RefinePlugin::onRefine()
 {
-    if (!_points.isValid())
+    if (!_hsnePoints.isValid())
     {
         qDebug() << "No refining since data set is invalid";
         return;
     }
 
-    if (_points->getSelectionIndices().empty())
+    if (_hsnePoints->getSelectionIndices().empty())
     {
-        qDebug() << "No refining since selection is empty in " << _points->getGuiName();
+        qDebug() << "No refining since selection is empty in " << _hsnePoints->getGuiName();
         return;
     }
 
     // top level embedding and scales have different UI layouts
-    auto refineAction = _points->findChildByPath("HSNE Settings/HSNE Scale/Refine selection");
+    auto refineAction = _hsnePoints->findChildByPath("HSNE Settings/HSNE Scale/Refine selection");
     if(refineAction == nullptr)
-        refineAction = _points->findChildByPath("HSNE Scale/Refine selection");
+        refineAction = _hsnePoints->findChildByPath("HSNE Scale/Refine selection");
 
     if (refineAction != nullptr)
     {
-        qDebug() << "Refine selection in " << _points->getGuiName();
+        qDebug() << "Refine selection in " << _hsnePoints->getGuiName();
         TriggerAction* refineTriggerAction = dynamic_cast<TriggerAction*>(refineAction);
         refineTriggerAction->trigger();
     }
