@@ -16,44 +16,38 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     _points(),
     _scatterplotView(nullptr),
     _refineAction(this, "Refine"),
-    _datasetPickerAction(this, "Dataset", DatasetPickerAction::Mode::Automatic),
+    _datasetPickerAction(this, "Dataset"),
     _updateDatasetAction(this, "Focus on refinement"),
     _scatterplotAction(this, "Attach to")
 {
     _scatterplotAction.setToolTip("Data opens in a new scatteplot. \nThe new scatterplot can be opened as a tab atatched to an existing one.");
     _updateDatasetAction.setToolTip("When refining a selection, focus the refine button on the newly created data set");
 
-    _datasetPickerAction.setDatasetsFilterFunction([](const mv::Datasets& datasets) -> Datasets {
-        Datasets possibleInitDataset;
+    _datasetPickerAction.setFilterFunction([](const mv::Dataset<DatasetImpl> dataset) -> bool {
 
         // Only list HSNE embeddings and refined scales
-        for (const auto& dataset : datasets)
+        if (!dataset->isVisible())
+            return false;
+
+        if (dataset->getDataType() != PointType)
+            return false;
+
+        if (!dataset->isDerivedData())
+            return false;
+
+        if (dataset->findChildByPath("HSNE Scale/Refine selection") == nullptr)
         {
-            if (!dataset->isVisible())
-                continue;
-
-            if (dataset->getDataType() != PointType)
-                continue;
-
-             if (!dataset->isDerivedData())
-                continue;
-
-             if (dataset->findChildByPath("HSNE Scale/Refine selection") == nullptr)
-             {
-                 // extra check since for refinements that action is seemingly added after this callback is triggered
-                 if (!dataset->getGuiName().contains("Hsne scale") && !dataset->getGuiName().contains("HSNE Embedding"))
-                     continue;
-             }
-
-             // do not add lowest scale
-             if (dataset->getGuiName().contains("Hsne scale 0"))
-                 continue;
-
-            possibleInitDataset << dataset;
+            // extra check since for refinements that action is seemingly added after this callback is triggered
+            if (!dataset->getGuiName().contains("Hsne scale") && !dataset->getGuiName().contains("HSNE Embedding"))
+                return false;
         }
 
-        return possibleInitDataset;
-        });
+        // do not add lowest scale
+        if (dataset->getGuiName().contains("Hsne scale 0"))
+            return false;
+
+        return true;
+    });
 
 
     auto resetScatterplotOptions = [this]() {
