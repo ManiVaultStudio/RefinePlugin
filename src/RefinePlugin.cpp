@@ -12,7 +12,7 @@ Q_PLUGIN_METADATA(IID "studio.manivault.RefinePlugin")
 using namespace mv;
 
 RefinePlugin::RefinePlugin(const PluginFactory* factory) :
-    ViewPlugin(factory),
+    plugin::ViewPlugin(factory),
     _hsnePoints(nullptr),
     _candidateDatasets(),
     _scatterplotView(nullptr),
@@ -72,9 +72,9 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
         updateScatterplotOptions();
         });
 
-    connect(&_refineAction, &TriggerAction::triggered, this, &RefinePlugin::onRefine);
+    connect(&_refineAction, &gui::TriggerAction::triggered, this, &RefinePlugin::onRefine);
 
-    connect(&_datasetPickerAction, &DatasetPickerAction::datasetPicked, this, [this](mv::Dataset<mv::DatasetImpl> newData) {
+    connect(&_datasetPickerAction, &gui::DatasetPickerAction::datasetPicked, this, [this](mv::Dataset<mv::DatasetImpl> newData) {
         if (newData->getDataType() != PointType)
             return;
 
@@ -82,7 +82,7 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
         });
 
     // This plugin builds on the behaviour that DatasetPickerAction::datasetsChanged is envoked before the _eventListener envokes RefinePlugin::onDataEvent
-    connect(&_datasetPickerAction, &DatasetPickerAction::datasetsChanged, this, [this](mv::Datasets newDatasets) {
+    connect(&_datasetPickerAction, &gui::DatasetPickerAction::datasetsChanged, this, [this](mv::Datasets newDatasets) {
 
         _candidateDatasets = {};
 
@@ -225,7 +225,7 @@ void RefinePlugin::onRefine()
     if (refineAction != nullptr)
     {
         qDebug() << "Refine selection in " << _hsnePoints->getGuiName();
-        TriggerAction* refineTriggerAction = dynamic_cast<TriggerAction*>(refineAction);
+        gui::TriggerAction* refineTriggerAction = dynamic_cast<gui::TriggerAction*>(refineAction);
         refineTriggerAction->trigger();
     }
 
@@ -234,6 +234,10 @@ void RefinePlugin::onRefine()
 /// ////////////// ///
 /// Plugin factory ///
 /// ////////////// ///
+
+RefinePluginFactory::RefinePluginFactory() {
+    setIconByName("filter");
+}
 
 ViewPlugin* RefinePluginFactory::produce()
 {
@@ -247,7 +251,7 @@ mv::DataTypes RefinePluginFactory::supportedDataTypes() const
 
 mv::gui::PluginTriggerActions RefinePluginFactory::getPluginTriggerActions(const mv::Datasets& datasets) const
 {
-    PluginTriggerActions pluginTriggerActions;
+    gui::PluginTriggerActions pluginTriggerActions;
 
     const auto getPluginInstance = [this]() -> RefinePlugin* {
         return dynamic_cast<RefinePlugin*>(plugins().requestViewPlugin(getKind()));
@@ -256,7 +260,7 @@ mv::gui::PluginTriggerActions RefinePluginFactory::getPluginTriggerActions(const
     const auto numberOfDatasets = datasets.count();
 
     if (numberOfDatasets >= 1 && PluginFactory::areAllDatasetsOfTheSameType(datasets, PointType)) {
-        auto pluginTriggerAction = new PluginTriggerAction(const_cast<RefinePluginFactory*>(this), this, "Refine", "Refine HSNE data", getIcon(), [this, getPluginInstance, datasets](PluginTriggerAction& pluginTriggerAction) -> void {
+        auto pluginTriggerAction = new gui::PluginTriggerAction(const_cast<RefinePluginFactory*>(this), this, "Refine", "Refine HSNE data", icon(), [this, getPluginInstance, datasets](gui::PluginTriggerAction& pluginTriggerAction) -> void {
             for (const auto& dataset : datasets)
                 getPluginInstance()->loadData(Datasets({ dataset }));;
         });

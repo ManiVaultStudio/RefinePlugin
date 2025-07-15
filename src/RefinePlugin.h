@@ -10,12 +10,7 @@
 
 #include <PointData/PointData.h>
 
-using namespace mv::plugin;
-using namespace mv::gui;
-
-class QLabel;
-
-class RefinePlugin : public ViewPlugin
+class RefinePlugin : public mv::plugin::ViewPlugin
 {
     Q_OBJECT
 
@@ -48,10 +43,10 @@ private:
     mv::Datasets            _candidateDatasets;         /** Candidate datasets for new hsne Points if _updateDatasetAction is active*/
     ViewPlugin*             _scatterplotView;           /** Scatterplot to show refined scale in */
 
-    TriggerAction           _refineAction;              /** big refine button */
-    DatasetPickerAction     _datasetPickerAction;       /** list all current data sets */
-    ToggleAction            _updateDatasetAction;       /** focus refine button on newly refined embedding */
-    OptionAction            _scatterplotAction;         /** add new embedding as a tab in a new scatterplot */
+    mv::gui::TriggerAction           _refineAction;              /** big refine button */
+    mv::gui::DatasetPickerAction     _datasetPickerAction;       /** list all current data sets */
+    mv::gui::ToggleAction            _updateDatasetAction;       /** focus refine button on newly refined embedding */
+    mv::gui::OptionAction            _scatterplotAction;         /** add new embedding as a tab in a new scatterplot */
 };
 
 /**
@@ -59,20 +54,17 @@ private:
  *
  * Note: Factory does not need to be altered (merely responsible for generating new plugins when requested)
  */
-class RefinePluginFactory : public ViewPluginFactory
+class RefinePluginFactory : public mv::plugin::ViewPluginFactory
 {
     Q_INTERFACES(mv::plugin::ViewPluginFactory mv::plugin::PluginFactory)
     Q_OBJECT
     Q_PLUGIN_METADATA(IID   "studio.manivault.RefinePlugin"
-                      FILE  "RefinePlugin.json")
+                      FILE  "PluginInfo.json")
 
 public:
 
-    /** Default constructor */
-    RefinePluginFactory() {}
-
-    /** Destructor */
-    ~RefinePluginFactory() override {}
+    /** Constructor */
+    RefinePluginFactory();
     
     /** Creates an instance of the example view plugin */
     ViewPlugin* produce() override;
@@ -85,5 +77,5 @@ public:
      * @param datasets Vector of input datasets
      * @return Vector of plugin trigger actions
      */
-    PluginTriggerActions getPluginTriggerActions(const mv::Datasets& datasets) const override;
+    mv::gui::PluginTriggerActions getPluginTriggerActions(const mv::Datasets& datasets) const override;
 };
