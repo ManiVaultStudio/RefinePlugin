@@ -1,0 +1,9 @@
+{
+    "name" : "Refine Plugin",
+    "version" :  {
+        "plugin" : "1.0.0",
+        "core" : ["1.4"]
+    },
+    "type" : "View",
+    "dependencies" : ["Points"]
+}

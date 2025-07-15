@@ -33,16 +33,20 @@ find_package(ManiVault COMPONENTS Core PointData ClusterData ImageData CONFIG)
 set(PLUGIN_SOURCES
     src/RefinePlugin.h
     src/RefinePlugin.cpp
-    src/RefinePlugin.json
 )
 
-source_group( Plugin FILES ${PLUGIN_SOURCES})
+set(PLUGIN_AUX
+    PluginInfo.json
+)
+
+source_group(Plugin FILES ${PLUGIN_SOURCES})
+source_group(Aux FILES ${PLUGIN_AUX})
 
 # -----------------------------------------------------------------------------
 # CMake Target
 # -----------------------------------------------------------------------------
 # Create dynamic library for the plugin
-add_library(${PROJECT_NAME} SHARED ${PLUGIN_SOURCES})
+add_library(${PROJECT_NAME} SHARED ${PLUGIN_SOURCES} ${PLUGIN_AUX})
 
 # -----------------------------------------------------------------------------
 # Target include directories
@@ -81,6 +85,8 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         --config $<CONFIGURATION>
         --prefix ${ManiVault_INSTALL_DIR}/$<CONFIGURATION>
 )
+
+mv_handle_plugin_config(${PROJECT_NAME})
 
 # -----------------------------------------------------------------------------
 # Miscellaneous

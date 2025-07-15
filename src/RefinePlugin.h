@@ -64,7 +64,7 @@ class RefinePluginFactory : public ViewPluginFactory
     Q_INTERFACES(mv::plugin::ViewPluginFactory mv::plugin::PluginFactory)
     Q_OBJECT
     Q_PLUGIN_METADATA(IID   "studio.manivault.RefinePlugin"
-                      FILE  "RefinePlugin.json")
+                      FILE  "PluginInfo.json")
 
 public:
 
