@@ -256,7 +256,7 @@ mv::gui::PluginTriggerActions RefinePluginFactory::getPluginTriggerActions(const
     const auto numberOfDatasets = datasets.count();
 
     if (numberOfDatasets >= 1 && PluginFactory::areAllDatasetsOfTheSameType(datasets, PointType)) {
-        auto pluginTriggerAction = new PluginTriggerAction(const_cast<RefinePluginFactory*>(this), this, "Refine", "Refine HSNE data", getIcon(), [this, getPluginInstance, datasets](PluginTriggerAction& pluginTriggerAction) -> void {
+        auto pluginTriggerAction = new PluginTriggerAction(const_cast<RefinePluginFactory*>(this), this, "Refine", "Refine HSNE data", icon(), [this, getPluginInstance, datasets](PluginTriggerAction& pluginTriggerAction) -> void {
             for (const auto& dataset : datasets)
                 getPluginInstance()->loadData(Datasets({ dataset }));;
         });

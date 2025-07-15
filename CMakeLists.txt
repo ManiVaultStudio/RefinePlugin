@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.22)
 
 # -----------------------------------------------------------------------------
 # RefinePlugin
@@ -57,8 +57,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE "${ManiVault_INCLUDE_DIR}")
 # -----------------------------------------------------------------------------
 # Target properties
 # -----------------------------------------------------------------------------
-# Request C++17
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+# Request C++20
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 
 # -----------------------------------------------------------------------------
 # Target library linking
