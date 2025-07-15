@@ -235,6 +235,10 @@ void RefinePlugin::onRefine()
 /// Plugin factory ///
 /// ////////////// ///
 
+RefinePluginFactory::RefinePluginFactory() {
+    setIconByName("filter");
+}
+
 ViewPlugin* RefinePluginFactory::produce()
 {
     return new RefinePlugin(this);

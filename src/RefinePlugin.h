@@ -13,8 +13,6 @@
 using namespace mv::plugin;
 using namespace mv::gui;
 
-class QLabel;
-
 class RefinePlugin : public ViewPlugin
 {
     Q_OBJECT
@@ -68,11 +66,8 @@ class RefinePluginFactory : public ViewPluginFactory
 
 public:
 
-    /** Default constructor */
-    RefinePluginFactory() {}
-
-    /** Destructor */
-    ~RefinePluginFactory() override {}
+    /** Constructor */
+    RefinePluginFactory();
     
     /** Creates an instance of the example view plugin */
     ViewPlugin* produce() override;
