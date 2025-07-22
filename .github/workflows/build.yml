@@ -2,7 +2,6 @@ name: RefinePlugin
 
 on:
   push:
-    - master
   pull_request:
   workflow_dispatch:
 
