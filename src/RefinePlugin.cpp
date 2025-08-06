@@ -35,18 +35,21 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
         if (!dataset->isDerivedData())
             return false;
 
-        if (dataset->findChildByPath("HSNE Scale/Refine selection") == nullptr)
-        {
-            // extra check since for refinements that action is seemingly added after this callback is triggered
-            if (!dataset->getGuiName().contains("Hsne scale") && !dataset->getGuiName().contains("HSNE Embedding"))
-                return false;
-        }
+        const QString datasetName = dataset->getGuiName();
 
         // do not add lowest scale
-        if (dataset->getGuiName().contains("Hsne scale 0"))
+        if (datasetName.contains("Hsne scale 0", Qt::CaseInsensitive))
             return false;
 
-        return true;
+        const QString refineActionPath = "HSNE Scale/Refine selection";
+
+        if (dataset->findChildByPath(refineActionPath) ||
+            dataset->getParent()->findChildByPath(refineActionPath) // extra check as sometimes the action is only added after this check
+            ) {
+            return true;
+        }
+
+        return false;
     });
 
     auto resetScatterplotOptions = [this]() {
