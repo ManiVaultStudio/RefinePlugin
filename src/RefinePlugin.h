@@ -10,6 +10,10 @@
 
 #include <PointData/PointData.h>
 
+#include <vector>
+
+#include <QStringList>
+
 class RefinePlugin : public mv::plugin::ViewPlugin
 {
     Q_OBJECT
@@ -28,11 +32,15 @@ public:
     /** This function is called by the core after the view plugin has been created */
     void init() override;
 
+public: // Functionality
+
     void loadData(const mv::Datasets& datasets);
 
     void onDataEvent(mv::DatasetEvent* dataEvent);
 
     void onRefine();
+
+public: // Getter
 
     std::vector<mv::plugin::Plugin*> getOpenScatterplots();
 
@@ -53,11 +61,10 @@ private:
     mv::gui::OptionAction            _scatterplotAction;         /** add new embedding as a tab in a new scatterplot */
 };
 
-/**
- * Plugin factory class
- *
- * Note: Factory does not need to be altered (merely responsible for generating new plugins when requested)
- */
+// =============================================================================
+// Factory
+// =============================================================================
+
 class RefinePluginFactory : public mv::plugin::ViewPluginFactory
 {
     Q_INTERFACES(mv::plugin::ViewPluginFactory mv::plugin::PluginFactory)

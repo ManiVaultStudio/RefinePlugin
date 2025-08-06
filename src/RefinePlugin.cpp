@@ -241,9 +241,10 @@ QVariantMap RefinePlugin::toVariantMap() const
     return variantMap;
 }
 
-/// ////////////// ///
-/// Plugin factory ///
-/// ////////////// ///
+
+// =============================================================================
+// Factory
+// =============================================================================
 
 RefinePluginFactory::RefinePluginFactory() {
     setIconByName("filter");
