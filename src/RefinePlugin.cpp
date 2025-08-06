@@ -153,6 +153,12 @@ void RefinePlugin::loadData(const Datasets& datasets)
 
 void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
 {
+    if (!_hsnePoints.isValid())
+    {
+        qDebug() << "RefinePlugin::onDataEvent: data set is invalid";
+        return;
+    }
+
     switch (dataEvent->getType()) {
     case EventType::DatasetAdded:
     {
