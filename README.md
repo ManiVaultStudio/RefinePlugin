@@ -6,6 +6,3 @@ Given a [HSNE embedding](https://github.com/ManiVaultStudio/t-SNE-Analysis), thi
 
 <video width="679" height="360" src="https://github.com/ManiVaultStudio/RefinePlugin/assets/58806453/9e7102fe-6576-47f1-9d0b-74a34a446519"></video>
 
-> **Developer note**:
-> 
-> This plugin makes use of the core's behaviour that `DatasetPickerAction::datasetsChanged` is envoked before the `_eventListener` envokes methods connected to `EventType::DatasetAdded`

@@ -14,7 +14,6 @@ using namespace mv;
 RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     plugin::ViewPlugin(factory),
     _hsnePoints(nullptr),
-    _candidateDatasets(),
     _scatterplotView(nullptr),
     _refineAction(this, "Refine"),
     _datasetPickerAction(this, "Dataset"),
@@ -79,17 +78,6 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
             return;
 
         _hsnePoints = newData;
-        });
-
-    // This plugin builds on the behaviour that DatasetPickerAction::datasetsChanged is envoked before the _eventListener envokes RefinePlugin::onDataEvent
-    connect(&_datasetPickerAction, &gui::DatasetPickerAction::datasetsChanged, this, [this](mv::Datasets newDatasets) {
-
-        _candidateDatasets = {};
-
-        if (!_updateDatasetAction.isChecked())
-            return;
-
-        _candidateDatasets = newDatasets;
         });
 
     _eventListener.addSupportedEventType(static_cast<std::uint32_t>(EventType::DatasetAdded));
@@ -165,6 +153,12 @@ void RefinePlugin::loadData(const Datasets& datasets)
 
 void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
 {
+    if (!_hsnePoints.isValid())
+    {
+        qDebug() << "RefinePlugin::onDataEvent: data set is invalid";
+        return;
+    }
+
     switch (dataEvent->getType()) {
     case EventType::DatasetAdded:
     {
@@ -231,9 +225,32 @@ void RefinePlugin::onRefine()
 
 }
 
-/// ////////////// ///
-/// Plugin factory ///
-/// ////////////// ///
+void RefinePlugin::fromVariantMap(const QVariantMap& variantMap)
+{
+    ViewPlugin::fromVariantMap(variantMap);
+
+    _refineAction.fromParentVariantMap(variantMap);
+    _datasetPickerAction.fromParentVariantMap(variantMap);
+    _updateDatasetAction.fromParentVariantMap(variantMap);
+    _scatterplotAction.fromParentVariantMap(variantMap);
+}
+
+QVariantMap RefinePlugin::toVariantMap() const
+{
+    QVariantMap variantMap = ViewPlugin::toVariantMap();
+
+    _refineAction.insertIntoVariantMap(variantMap);
+    _datasetPickerAction.insertIntoVariantMap(variantMap);
+    _updateDatasetAction.insertIntoVariantMap(variantMap);
+    _scatterplotAction.insertIntoVariantMap(variantMap);
+
+    return variantMap;
+}
+
+
+// =============================================================================
+// Factory
+// =============================================================================
 
 RefinePluginFactory::RefinePluginFactory() {
     setIconByName("filter");
