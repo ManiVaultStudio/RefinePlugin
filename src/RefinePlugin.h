@@ -38,6 +38,11 @@ public:
 
     QStringList getScatterplotOptions();
 
+public: // Serialization
+
+    void fromVariantMap(const QVariantMap& variantMap) override;
+    QVariantMap toVariantMap() const override;
+
 private:
     mv::Dataset<Points>     _hsnePoints;                /** Current hsne points smart pointer */
     mv::Datasets            _candidateDatasets;         /** Candidate datasets for new hsne Points if _updateDatasetAction is active*/

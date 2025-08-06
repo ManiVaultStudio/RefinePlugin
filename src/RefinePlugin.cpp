@@ -231,6 +231,28 @@ void RefinePlugin::onRefine()
 
 }
 
+void RefinePlugin::fromVariantMap(const QVariantMap& variantMap)
+{
+    ViewPlugin::fromVariantMap(variantMap);
+
+    _refineAction.fromParentVariantMap(variantMap);
+    _datasetPickerAction.fromParentVariantMap(variantMap);
+    _updateDatasetAction.fromParentVariantMap(variantMap);
+    _scatterplotAction.fromParentVariantMap(variantMap);
+}
+
+QVariantMap RefinePlugin::toVariantMap() const
+{
+    QVariantMap variantMap = ViewPlugin::toVariantMap();
+
+    _refineAction.insertIntoVariantMap(variantMap);
+    _datasetPickerAction.insertIntoVariantMap(variantMap);
+    _updateDatasetAction.insertIntoVariantMap(variantMap);
+    _scatterplotAction.insertIntoVariantMap(variantMap);
+
+    return variantMap;
+}
+
 /// ////////////// ///
 /// Plugin factory ///
 /// ////////////// ///
