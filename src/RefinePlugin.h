@@ -44,9 +44,8 @@ public: // Serialization
     QVariantMap toVariantMap() const override;
 
 private:
-    mv::Dataset<Points>     _hsnePoints;                /** Current hsne points smart pointer */
-    mv::Datasets            _candidateDatasets;         /** Candidate datasets for new hsne Points if _updateDatasetAction is active*/
-    ViewPlugin*             _scatterplotView;           /** Scatterplot to show refined scale in */
+    mv::Dataset<Points>              _hsnePoints;                /** Current hsne points smart pointer */
+    ViewPlugin*                      _scatterplotView;           /** Scatterplot to show refined scale in */
 
     mv::gui::TriggerAction           _refineAction;              /** big refine button */
     mv::gui::DatasetPickerAction     _datasetPickerAction;       /** list all current data sets */

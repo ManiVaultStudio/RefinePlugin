@@ -14,7 +14,6 @@ using namespace mv;
 RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     plugin::ViewPlugin(factory),
     _hsnePoints(nullptr),
-    _candidateDatasets(),
     _scatterplotView(nullptr),
     _refineAction(this, "Refine"),
     _datasetPickerAction(this, "Dataset"),
@@ -79,17 +78,6 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
             return;
 
         _hsnePoints = newData;
-        });
-
-    // This plugin builds on the behaviour that DatasetPickerAction::datasetsChanged is envoked before the _eventListener envokes RefinePlugin::onDataEvent
-    connect(&_datasetPickerAction, &gui::DatasetPickerAction::datasetsChanged, this, [this](mv::Datasets newDatasets) {
-
-        _candidateDatasets = {};
-
-        if (!_updateDatasetAction.isChecked())
-            return;
-
-        _candidateDatasets = newDatasets;
         });
 
     _eventListener.addSupportedEventType(static_cast<std::uint32_t>(EventType::DatasetAdded));
