@@ -1,10 +1,15 @@
 #include "RefinePlugin.h"
 
 #include <DataHierarchyItem.h>
+#include <actions/WidgetAction.h>
 #include <event/Event.h>
+
+#include <optional>
 
 #include <QDebug>
 #include <QGridLayout>
+#include <QMap>
+#include <QString>
 #include <QWidget>
 
 Q_PLUGIN_METADATA(IID "studio.manivault.RefinePlugin")
@@ -14,7 +19,6 @@ using namespace mv;
 RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     plugin::ViewPlugin(factory),
     _hsnePoints(nullptr),
-    _candidateDatasets(),
     _scatterplotView(nullptr),
     _refineAction(this, "Refine"),
     _datasetPickerAction(this, "Dataset"),
@@ -36,18 +40,21 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
         if (!dataset->isDerivedData())
             return false;
 
-        if (dataset->findChildByPath("HSNE Scale/Refine selection") == nullptr)
-        {
-            // extra check since for refinements that action is seemingly added after this callback is triggered
-            if (!dataset->getGuiName().contains("Hsne scale") && !dataset->getGuiName().contains("HSNE Embedding"))
-                return false;
-        }
+        const QString datasetName = dataset->getGuiName();
 
         // do not add lowest scale
-        if (dataset->getGuiName().contains("Hsne scale 0"))
+        if (datasetName.contains("Hsne scale 0", Qt::CaseInsensitive))
             return false;
 
-        return true;
+        const QString refineActionPath = "HSNE Scale/Refine selection";
+
+        if (dataset->findChildByPath(refineActionPath) ||
+            dataset->getParent()->findChildByPath(refineActionPath) // extra check as sometimes the action is only added after this check
+            ) {
+            return true;
+        }
+
+        return false;
     });
 
     auto resetScatterplotOptions = [this]() {
@@ -79,17 +86,6 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
             return;
 
         _hsnePoints = newData;
-        });
-
-    // This plugin builds on the behaviour that DatasetPickerAction::datasetsChanged is envoked before the _eventListener envokes RefinePlugin::onDataEvent
-    connect(&_datasetPickerAction, &gui::DatasetPickerAction::datasetsChanged, this, [this](mv::Datasets newDatasets) {
-
-        _candidateDatasets = {};
-
-        if (!_updateDatasetAction.isChecked())
-            return;
-
-        _candidateDatasets = newDatasets;
         });
 
     _eventListener.addSupportedEventType(static_cast<std::uint32_t>(EventType::DatasetAdded));
@@ -165,6 +161,12 @@ void RefinePlugin::loadData(const Datasets& datasets)
 
 void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
 {
+    if (!_hsnePoints.isValid())
+    {
+        qDebug() << "RefinePlugin::onDataEvent: data set is invalid";
+        return;
+    }
+
     switch (dataEvent->getType()) {
     case EventType::DatasetAdded:
     {
@@ -211,29 +213,79 @@ void RefinePlugin::onRefine()
         return;
     }
 
+    const QString datasetName = _hsnePoints->getGuiName();
+
     if (_hsnePoints->getSelectionIndices().empty())
     {
-        qDebug() << "No refining since selection is empty in " << _hsnePoints->getGuiName();
+        qDebug() << "No refining since selection is empty in " << datasetName;
         return;
     }
 
-    // top level embedding and scales have different UI layouts
-    auto refineAction = _hsnePoints->findChildByPath("HSNE Settings/HSNE Scale/Refine selection");
-    if(refineAction == nullptr)
-        refineAction = _hsnePoints->findChildByPath("HSNE Scale/Refine selection");
 
-    if (refineAction != nullptr)
+    QMap<QString, gui::WidgetAction*> childrenByPath;
+
+    for (auto child : _hsnePoints->WidgetAction::getChildren(true))
+        childrenByPath[child->getLocation(true)] = child;
+
+    // top level embedding and scales have different UI layouts
+    const auto prefixedPathTopLevel     = QString("%1/%2").arg(datasetName, "HSNE Settings/HSNE Scale/Refine selection");
+    const auto prefixedPathRefinement   = QString("%1/%2").arg(datasetName, "HSNE Scale/Refine selection");
+
+    auto findValueBySubstring = [](const QMap<QString, gui::WidgetAction*>& map, const QString& substring) -> std::optional<gui::WidgetAction*> {
+        for (auto it = map.constBegin(); it != map.constEnd(); ++it) {
+            if (it.key().contains(substring, Qt::CaseInsensitive)) {
+                return it.value();  // First match
+            }
+        }
+        return std::nullopt;
+        };
+
+    gui::WidgetAction* refineAction = nullptr;
+    
+    if (auto actionInTopLevel = findValueBySubstring(childrenByPath, prefixedPathTopLevel))
+        refineAction = *actionInTopLevel;
+
+    if (auto actionInRefinement = findValueBySubstring(childrenByPath, prefixedPathRefinement))
+        refineAction = *actionInRefinement;
+
+    if (refineAction == nullptr)
     {
-        qDebug() << "Refine selection in " << _hsnePoints->getGuiName();
-        gui::TriggerAction* refineTriggerAction = dynamic_cast<gui::TriggerAction*>(refineAction);
-        refineTriggerAction->trigger();
+        qDebug() << "No refining since data set does not have a refine action " << _hsnePoints->getGuiName();
+        return;
     }
+
+    qDebug() << "Refine selection in " << _hsnePoints->getGuiName();
+    gui::TriggerAction* refineTriggerAction = dynamic_cast<gui::TriggerAction*>(refineAction);
+    refineTriggerAction->trigger();
 
 }
 
-/// ////////////// ///
-/// Plugin factory ///
-/// ////////////// ///
+void RefinePlugin::fromVariantMap(const QVariantMap& variantMap)
+{
+    ViewPlugin::fromVariantMap(variantMap);
+
+    _refineAction.fromParentVariantMap(variantMap);
+    _datasetPickerAction.fromParentVariantMap(variantMap);
+    _updateDatasetAction.fromParentVariantMap(variantMap);
+    _scatterplotAction.fromParentVariantMap(variantMap);
+}
+
+QVariantMap RefinePlugin::toVariantMap() const
+{
+    QVariantMap variantMap = ViewPlugin::toVariantMap();
+
+    _refineAction.insertIntoVariantMap(variantMap);
+    _datasetPickerAction.insertIntoVariantMap(variantMap);
+    _updateDatasetAction.insertIntoVariantMap(variantMap);
+    _scatterplotAction.insertIntoVariantMap(variantMap);
+
+    return variantMap;
+}
+
+
+// =============================================================================
+// Factory
+// =============================================================================
 
 RefinePluginFactory::RefinePluginFactory() {
     setIconByName("filter");
