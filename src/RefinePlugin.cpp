@@ -10,6 +10,7 @@
 #include <QGridLayout>
 #include <QMap>
 #include <QString>
+#include <QTimer>
 #include <QWidget>
 
 Q_PLUGIN_METADATA(IID "studio.manivault.RefinePlugin")
