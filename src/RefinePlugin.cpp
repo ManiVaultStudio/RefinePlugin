@@ -119,6 +119,21 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
             return;
 
         _hsnePoints = newData;
+
+        // bit of a hack: the refineAction seems to take longer to create and 
+        // does not exist when this function is called, so wait a little
+        QTimer::singleShot(250, [this]() {
+
+            if (getRefineAction(_hsnePoints)) {
+                _refineAction.setText("Refine");
+                _refineAction.setEnabled(true);
+            }
+            else {
+                _refineAction.setText("Cannot refine this data");
+                _refineAction.setEnabled(false);
+            }
+            });
+
         });
 
     _eventListener.addSupportedEventType(static_cast<std::uint32_t>(EventType::DatasetAdded));
