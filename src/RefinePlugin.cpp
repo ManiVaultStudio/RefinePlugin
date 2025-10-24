@@ -126,7 +126,7 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
 
         // bit of a hack: the refineAction seems to take longer to create and 
         // does not exist when this function is called, so wait a little
-        QTimer::singleShot(250, [this]() {
+        QTimer::singleShot(500, [this]() {
 
             if (getRefineAction(_hsnePoints)) {
                 _refineAction.setText("Refine");
