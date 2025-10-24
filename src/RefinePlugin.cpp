@@ -10,11 +10,53 @@
 #include <QGridLayout>
 #include <QMap>
 #include <QString>
+#include <QTimer>
 #include <QWidget>
 
 Q_PLUGIN_METADATA(IID "studio.manivault.RefinePlugin")
 
 using namespace mv;
+
+static gui::TriggerAction* getRefineAction(const mv::Dataset<DatasetImpl>& dataset) {
+    // top level embedding and scales have different UI layouts
+    const QString datasetName = dataset->getGuiName();
+
+    if (datasetName.contains("Hsne scale 0", Qt::CaseInsensitive))
+        return nullptr;
+
+    const auto prefixedPathTopLevel = QString("%1/%2").arg(datasetName, "HSNE Settings/HSNE Scale/Refine selection");
+    const auto prefixedPathRefinement = QString("%1/%2").arg(datasetName, "HSNE Scale/Refine selection");
+
+    QMap<QString, gui::WidgetAction*> childrenByPath = {};
+
+    for (auto child : dataset->WidgetAction::getChildren(true))
+        childrenByPath[child->getLocation(true)] = child;
+
+    gui::WidgetAction* refineAction = nullptr;
+
+    auto findValueBySubstring = [](const QMap<QString, gui::WidgetAction*>& map, const QString& substring) -> std::optional<gui::WidgetAction*> {
+        for (auto it = map.constBegin(); it != map.constEnd(); ++it) {
+            if (it.key().contains(substring, Qt::CaseInsensitive)) {
+                return it.value();  // First match
+            }
+        }
+        return std::nullopt;
+        };
+
+    if (auto actionInTopLevel = findValueBySubstring(childrenByPath, prefixedPathTopLevel)) {
+        refineAction = *actionInTopLevel;
+    }
+
+    if (auto actionInRefinement = findValueBySubstring(childrenByPath, prefixedPathRefinement)) {
+        refineAction = *actionInRefinement;
+    }
+
+    if (refineAction && !refineAction->isVisible()) {
+        return nullptr;
+    }
+
+    return dynamic_cast<gui::TriggerAction*>(refineAction);
+}
 
 RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     plugin::ViewPlugin(factory),
@@ -25,8 +67,9 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     _updateDatasetAction(this, "Focus on refinement"),
     _scatterplotAction(this, "Attach to")
 {
-    _scatterplotAction.setToolTip("Data opens in a new scatteplot. \nThe new scatterplot can be opened as a tab atatched to an existing one.");
-    _updateDatasetAction.setToolTip("When refining a selection, focus the refine button on the newly created data set");
+    _scatterplotAction.setToolTip("Data opens in a new scatteplot. \n" \
+        "The new scatterplot can be opened as a tab atatched to an existing one.");
+    _updateDatasetAction.setToolTip("When refining a selection, focus the refine button on the newly created data set.");
 
     _datasetPickerAction.setFilterFunction([](const mv::Dataset<DatasetImpl> dataset) -> bool {
 
@@ -42,15 +85,14 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
 
         const QString datasetName = dataset->getGuiName();
 
-        // do not add lowest scale
-        if (datasetName.contains("Hsne scale 0", Qt::CaseInsensitive))
+        // do not add hsne meta data
+        if (datasetName.contains("Landmark weights", Qt::CaseInsensitive))
             return false;
 
-        const QString refineActionPath = "HSNE Scale/Refine selection";
-
-        if (dataset->findChildByPath(refineActionPath) ||
-            dataset->getParent()->findChildByPath(refineActionPath) // extra check as sometimes the action is only added after this check
-            ) {
+        // extra check as often the action is only added after this check
+        // this is unfortunate since this leads to wrong datasets also being added
+        if (getRefineAction(dataset) || 
+            getRefineAction(dataset->getParent())) {
             return true;
         }
 
@@ -86,6 +128,21 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
             return;
 
         _hsnePoints = newData;
+
+        // bit of a hack: the refineAction seems to take longer to create and 
+        // does not exist when this function is called, so wait a little
+        QTimer::singleShot(500, [this]() {
+
+            if (getRefineAction(_hsnePoints)) {
+                _refineAction.setText("Refine");
+                _refineAction.setEnabled(true);
+            }
+            else {
+                _refineAction.setText("Cannot refine this data");
+                _refineAction.setEnabled(false);
+            }
+            });
+
         });
 
     _eventListener.addSupportedEventType(static_cast<std::uint32_t>(EventType::DatasetAdded));
@@ -194,7 +251,7 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
             _scatterplotView = mv::plugins().requestViewPlugin("Scatterplot View", parentView, dockArea);
             _scatterplotView->loadData({ changedDataSet });
 
-            if (_updateDatasetAction.isChecked() && !changedDataSet->getGuiName().contains("Hsne scale 0"))
+            if (_updateDatasetAction.isChecked())
             {
                 if (_datasetPickerAction.getDatasets().contains(changedDataSet))
                     _datasetPickerAction.setCurrentDataset(changedDataSet->getId());
@@ -213,51 +270,21 @@ void RefinePlugin::onRefine()
         return;
     }
 
-    const QString datasetName = _hsnePoints->getGuiName();
-
     if (_hsnePoints->getSelectionIndices().empty())
     {
-        qDebug() << "No refining since selection is empty in " << datasetName;
+        qDebug() << "No refining since selection is empty in " << _hsnePoints->getGuiName();
         return;
     }
 
+    gui::TriggerAction* refineAction = getRefineAction(_hsnePoints);
 
-    QMap<QString, gui::WidgetAction*> childrenByPath;
-
-    for (auto child : _hsnePoints->WidgetAction::getChildren(true))
-        childrenByPath[child->getLocation(true)] = child;
-
-    // top level embedding and scales have different UI layouts
-    const auto prefixedPathTopLevel     = QString("%1/%2").arg(datasetName, "HSNE Settings/HSNE Scale/Refine selection");
-    const auto prefixedPathRefinement   = QString("%1/%2").arg(datasetName, "HSNE Scale/Refine selection");
-
-    auto findValueBySubstring = [](const QMap<QString, gui::WidgetAction*>& map, const QString& substring) -> std::optional<gui::WidgetAction*> {
-        for (auto it = map.constBegin(); it != map.constEnd(); ++it) {
-            if (it.key().contains(substring, Qt::CaseInsensitive)) {
-                return it.value();  // First match
-            }
-        }
-        return std::nullopt;
-        };
-
-    gui::WidgetAction* refineAction = nullptr;
-    
-    if (auto actionInTopLevel = findValueBySubstring(childrenByPath, prefixedPathTopLevel))
-        refineAction = *actionInTopLevel;
-
-    if (auto actionInRefinement = findValueBySubstring(childrenByPath, prefixedPathRefinement))
-        refineAction = *actionInRefinement;
-
-    if (refineAction == nullptr)
-    {
+    if (refineAction == nullptr) {
         qDebug() << "No refining since data set does not have a refine action " << _hsnePoints->getGuiName();
         return;
     }
 
     qDebug() << "Refine selection in " << _hsnePoints->getGuiName();
-    gui::TriggerAction* refineTriggerAction = dynamic_cast<gui::TriggerAction*>(refineAction);
-    refineTriggerAction->trigger();
-
+    refineAction->trigger();
 }
 
 void RefinePlugin::fromVariantMap(const QVariantMap& variantMap)
