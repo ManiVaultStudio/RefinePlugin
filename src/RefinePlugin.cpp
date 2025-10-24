@@ -83,8 +83,10 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
         if (datasetName.contains("Landmark weights", Qt::CaseInsensitive))
             return false;
 
-            dataset->getParent()->findChildByPath(refineActionPath) // extra check as sometimes the action is only added after this check
-            ) {
+        // extra check as often the action is only added after this check
+        // this is unfortunate since this leads to wrong datasets also being added
+        if (getRefineAction(dataset) || 
+            getRefineAction(dataset->getParent())) {
             return true;
         }
 
