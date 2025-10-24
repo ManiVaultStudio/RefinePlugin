@@ -16,6 +16,39 @@ Q_PLUGIN_METADATA(IID "studio.manivault.RefinePlugin")
 
 using namespace mv;
 
+static gui::TriggerAction* getRefineAction(const mv::Dataset<DatasetImpl>& dataset) {
+    // top level embedding and scales have different UI layouts
+    const QString datasetName = dataset->getGuiName();
+    const auto prefixedPathTopLevel = QString("%1/%2").arg(datasetName, "HSNE Settings/HSNE Scale/Refine selection");
+    const auto prefixedPathRefinement = QString("%1/%2").arg(datasetName, "HSNE Scale/Refine selection");
+
+    QMap<QString, gui::WidgetAction*> childrenByPath = {};
+
+    for (auto child : dataset->WidgetAction::getChildren(true))
+        childrenByPath[child->getLocation(true)] = child;
+
+    gui::WidgetAction* refineAction = nullptr;
+
+    auto findValueBySubstring = [](const QMap<QString, gui::WidgetAction*>& map, const QString& substring) -> std::optional<gui::WidgetAction*> {
+        for (auto it = map.constBegin(); it != map.constEnd(); ++it) {
+            if (it.key().contains(substring, Qt::CaseInsensitive)) {
+                return it.value();  // First match
+            }
+        }
+        return std::nullopt;
+        };
+
+    if (auto actionInTopLevel = findValueBySubstring(childrenByPath, prefixedPathTopLevel)) {
+        refineAction = *actionInTopLevel;
+    }
+
+    if (auto actionInRefinement = findValueBySubstring(childrenByPath, prefixedPathRefinement)) {
+        refineAction = *actionInRefinement;
+    }
+
+    return dynamic_cast<gui::TriggerAction*>(refineAction);
+}
+
 RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     plugin::ViewPlugin(factory),
     _hsnePoints(nullptr),
@@ -213,51 +246,21 @@ void RefinePlugin::onRefine()
         return;
     }
 
-    const QString datasetName = _hsnePoints->getGuiName();
-
     if (_hsnePoints->getSelectionIndices().empty())
     {
-        qDebug() << "No refining since selection is empty in " << datasetName;
+        qDebug() << "No refining since selection is empty in " << _hsnePoints->getGuiName();
         return;
     }
 
+    gui::TriggerAction* refineAction = getRefineAction(_hsnePoints);
 
-    QMap<QString, gui::WidgetAction*> childrenByPath;
-
-    for (auto child : _hsnePoints->WidgetAction::getChildren(true))
-        childrenByPath[child->getLocation(true)] = child;
-
-    // top level embedding and scales have different UI layouts
-    const auto prefixedPathTopLevel     = QString("%1/%2").arg(datasetName, "HSNE Settings/HSNE Scale/Refine selection");
-    const auto prefixedPathRefinement   = QString("%1/%2").arg(datasetName, "HSNE Scale/Refine selection");
-
-    auto findValueBySubstring = [](const QMap<QString, gui::WidgetAction*>& map, const QString& substring) -> std::optional<gui::WidgetAction*> {
-        for (auto it = map.constBegin(); it != map.constEnd(); ++it) {
-            if (it.key().contains(substring, Qt::CaseInsensitive)) {
-                return it.value();  // First match
-            }
-        }
-        return std::nullopt;
-        };
-
-    gui::WidgetAction* refineAction = nullptr;
-    
-    if (auto actionInTopLevel = findValueBySubstring(childrenByPath, prefixedPathTopLevel))
-        refineAction = *actionInTopLevel;
-
-    if (auto actionInRefinement = findValueBySubstring(childrenByPath, prefixedPathRefinement))
-        refineAction = *actionInRefinement;
-
-    if (refineAction == nullptr)
-    {
+    if (refineAction == nullptr) {
         qDebug() << "No refining since data set does not have a refine action " << _hsnePoints->getGuiName();
         return;
     }
 
     qDebug() << "Refine selection in " << _hsnePoints->getGuiName();
-    gui::TriggerAction* refineTriggerAction = dynamic_cast<gui::TriggerAction*>(refineAction);
-    refineTriggerAction->trigger();
-
+    refineAction->trigger();
 }
 
 void RefinePlugin::fromVariantMap(const QVariantMap& variantMap)
