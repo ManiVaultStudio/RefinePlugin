@@ -79,9 +79,10 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
         if (datasetName.contains("Hsne scale 0", Qt::CaseInsensitive))
             return false;
 
-        const QString refineActionPath = "HSNE Scale/Refine selection";
+        // do not add hsne meta data
+        if (datasetName.contains("Landmark weights", Qt::CaseInsensitive))
+            return false;
 
-        if (dataset->findChildByPath(refineActionPath) ||
             dataset->getParent()->findChildByPath(refineActionPath) // extra check as sometimes the action is only added after this check
             ) {
             return true;
