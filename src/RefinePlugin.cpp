@@ -20,6 +20,10 @@ using namespace mv;
 static gui::TriggerAction* getRefineAction(const mv::Dataset<DatasetImpl>& dataset) {
     // top level embedding and scales have different UI layouts
     const QString datasetName = dataset->getGuiName();
+
+    if (datasetName.contains("Hsne scale 0", Qt::CaseInsensitive))
+        return nullptr;
+
     const auto prefixedPathTopLevel = QString("%1/%2").arg(datasetName, "HSNE Settings/HSNE Scale/Refine selection");
     const auto prefixedPathRefinement = QString("%1/%2").arg(datasetName, "HSNE Scale/Refine selection");
 
@@ -47,6 +51,10 @@ static gui::TriggerAction* getRefineAction(const mv::Dataset<DatasetImpl>& datas
         refineAction = *actionInRefinement;
     }
 
+    if (refineAction && !refineAction->isVisible()) {
+        return nullptr;
+    }
+
     return dynamic_cast<gui::TriggerAction*>(refineAction);
 }
 
@@ -59,8 +67,9 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     _updateDatasetAction(this, "Focus on refinement"),
     _scatterplotAction(this, "Attach to")
 {
-    _scatterplotAction.setToolTip("Data opens in a new scatteplot. \nThe new scatterplot can be opened as a tab atatched to an existing one.");
-    _updateDatasetAction.setToolTip("When refining a selection, focus the refine button on the newly created data set");
+    _scatterplotAction.setToolTip("Data opens in a new scatteplot. \n" \
+        "The new scatterplot can be opened as a tab atatched to an existing one.");
+    _updateDatasetAction.setToolTip("When refining a selection, focus the refine button on the newly created data set.");
 
     _datasetPickerAction.setFilterFunction([](const mv::Dataset<DatasetImpl> dataset) -> bool {
 
@@ -75,10 +84,6 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
             return false;
 
         const QString datasetName = dataset->getGuiName();
-
-        // do not add lowest scale
-        if (datasetName.contains("Hsne scale 0", Qt::CaseInsensitive))
-            return false;
 
         // do not add hsne meta data
         if (datasetName.contains("Landmark weights", Qt::CaseInsensitive))
@@ -246,7 +251,7 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
             _scatterplotView = mv::plugins().requestViewPlugin("Scatterplot View", parentView, dockArea);
             _scatterplotView->loadData({ changedDataSet });
 
-            if (_updateDatasetAction.isChecked() && !changedDataSet->getGuiName().contains("Hsne scale 0"))
+            if (_updateDatasetAction.isChecked())
             {
                 if (_datasetPickerAction.getDatasets().contains(changedDataSet))
                     _datasetPickerAction.setCurrentDataset(changedDataSet->getId());
