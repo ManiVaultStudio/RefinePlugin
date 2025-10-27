@@ -34,7 +34,7 @@ public:
 
 public: // Functionality
 
-    void loadData(const mv::Datasets& datasets);
+    void loadData(const mv::Datasets& datasets) override;
 
     void onDataEvent(mv::DatasetEvent* dataEvent);
 
