@@ -78,6 +78,7 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
             return false;
 
         if (dataset->getDataType() != PointType)
+        if (dataset->getDataType() != PointType)
             return false;
 
         if (!dataset->isDerivedData())
@@ -257,7 +258,10 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
                     _datasetPickerAction.setCurrentDataset(changedDataSet->getId());
             }
         }
+        break;
     }
+    default:
+        break;
     }
 
 }
