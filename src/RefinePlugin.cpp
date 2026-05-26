@@ -58,7 +58,7 @@ static gui::TriggerAction* getRefineAction(const mv::Dataset<DatasetImpl>& datas
     return dynamic_cast<gui::TriggerAction*>(refineAction);
 }
 
-RefinePlugin::RefinePlugin(const PluginFactory* factory) :
+RefinePlugin::RefinePlugin(const mv::plugin::PluginFactory* factory) :
     plugin::ViewPlugin(factory),
     _hsnePoints(nullptr),
     _scatterplotView(nullptr),
@@ -322,7 +322,7 @@ RefinePluginFactory::RefinePluginFactory() {
     setIconByName("filter");
 }
 
-ViewPlugin* RefinePluginFactory::produce()
+mv::plugin::ViewPlugin* RefinePluginFactory::produce()
 {
     return new RefinePlugin(this);
 }
