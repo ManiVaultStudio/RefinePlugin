@@ -125,7 +125,7 @@ RefinePlugin::RefinePlugin(const mv::plugin::PluginFactory* factory) :
     connect(&_refineAction, &gui::TriggerAction::triggered, this, &RefinePlugin::onRefine);
 
     connect(&_datasetPickerAction, &gui::DatasetPickerAction::datasetPicked, this, [this](mv::Dataset<mv::DatasetImpl> newData) {
-        if (newData->getDataType() != PointType)
+        if (newData.isValid() && newData->getDataType() != PointType)
             return;
 
         _hsnePoints = newData;
