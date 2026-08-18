@@ -58,7 +58,7 @@ static gui::TriggerAction* getRefineAction(const mv::Dataset<DatasetImpl>& datas
     return dynamic_cast<gui::TriggerAction*>(refineAction);
 }
 
-RefinePlugin::RefinePlugin(const PluginFactory* factory) :
+RefinePlugin::RefinePlugin(const mv::plugin::PluginFactory* factory) :
     plugin::ViewPlugin(factory),
     _hsnePoints(nullptr),
     _scatterplotView(nullptr),
@@ -77,6 +77,7 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
         if (!dataset->isVisible())
             return false;
 
+        if (dataset->getDataType() != PointType)
         if (dataset->getDataType() != PointType)
             return false;
 
@@ -124,7 +125,7 @@ RefinePlugin::RefinePlugin(const PluginFactory* factory) :
     connect(&_refineAction, &gui::TriggerAction::triggered, this, &RefinePlugin::onRefine);
 
     connect(&_datasetPickerAction, &gui::DatasetPickerAction::datasetPicked, this, [this](mv::Dataset<mv::DatasetImpl> newData) {
-        if (newData->getDataType() != PointType)
+        if (newData.isValid() && newData->getDataType() != PointType)
             return;
 
         _hsnePoints = newData;
@@ -257,7 +258,10 @@ void RefinePlugin::onDataEvent(mv::DatasetEvent* dataEvent)
                     _datasetPickerAction.setCurrentDataset(changedDataSet->getId());
             }
         }
+        break;
     }
+    default:
+        break;
     }
 
 }
@@ -318,7 +322,7 @@ RefinePluginFactory::RefinePluginFactory() {
     setIconByName("filter");
 }
 
-ViewPlugin* RefinePluginFactory::produce()
+mv::plugin::ViewPlugin* RefinePluginFactory::produce()
 {
     return new RefinePlugin(this);
 }

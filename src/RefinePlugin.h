@@ -24,7 +24,7 @@ public:
      * Constructor
      * @param factory Pointer to the plugin factory
      */
-    RefinePlugin(const PluginFactory* factory);
+    RefinePlugin(const mv::plugin::PluginFactory* factory);
 
     /** Destructor */
     ~RefinePlugin() override = default;
@@ -34,7 +34,7 @@ public:
 
 public: // Functionality
 
-    void loadData(const mv::Datasets& datasets);
+    void loadData(const mv::Datasets& datasets) override;
 
     void onDataEvent(mv::DatasetEvent* dataEvent);
 
@@ -78,7 +78,7 @@ public:
     RefinePluginFactory();
     
     /** Creates an instance of the example view plugin */
-    ViewPlugin* produce() override;
+    mv::plugin::ViewPlugin* produce() override;
 
     /** Returns the data types that are supported by the example view plugin */
     mv::DataTypes supportedDataTypes() const override;
